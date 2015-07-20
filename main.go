@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cloudfoundry/cli/cf"
 	"github.com/cloudfoundry/cli/cf/app"
@@ -14,6 +13,7 @@ import (
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin/rpc"
 	"github.com/codegangsta/cli"
+	"github.com/gopherjs/gopherjs/js"
 )
 
 var deps = command_registry.NewDependency()
@@ -21,6 +21,13 @@ var deps = command_registry.NewDependency()
 var cmdRegistry = command_registry.Commands
 
 func main() {
+	js.Global.Set("cli", map[string]interface{}{
+		"curl": callCommand,
+	})
+	callCommand([]string{"./web-cli", "curl", "/v2/info"})
+}
+
+func callCommand(args []string) {
 	fmt.Println("hello world")
 
 	fmt.Println(cf.Version + "-" + cf.BuiltOnDate)
@@ -43,17 +50,16 @@ func main() {
 
 	metaDatas := cmdFactory.CommandMetadatas()
 
-	fmt.Println(os.Args[0:])
+	fmt.Println(args)
 	theApp := app.NewApp(cmdRunner, metaDatas...)
-	callCoreCommand(os.Args[0:], theApp)
-	os.Exit(0)
+	callCoreCommand(args, theApp)
 }
 
 func newCliRpcServer(outputCapture terminal.OutputCapture, terminalOutputSwitch terminal.TerminalOutputSwitch) *rpc.CliRpcService {
 	cliServer, err := rpc.NewRpcService(nil, outputCapture, terminalOutputSwitch, deps.Config, deps.RepoLocator, rpc.NewNonCodegangstaRunner())
 	if err != nil {
 		fmt.Println("Error initializing RPC service: ", err)
-		os.Exit(1)
+		// os.Exit(1)
 	}
 
 	return cliServer
@@ -62,7 +68,7 @@ func newCliRpcServer(outputCapture terminal.OutputCapture, terminalOutputSwitch 
 func callCoreCommand(args []string, theApp *cli.App) {
 	err := theApp.Run(args)
 	if err != nil {
-		os.Exit(1)
+		// os.Exit(1)
 	}
 	gateways := gatewaySliceFromMap(deps.Gateways)
 

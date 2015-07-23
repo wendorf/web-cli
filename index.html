@@ -4,8 +4,44 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <title>web-cli</title>
     <script type="text/javascript" src="main.js"></script>
+    <script type="text/javascript" src="term.js"></script>
+    <style>
+      .terminal {
+        float: left;
+        border: #000 solid 5px;
+        font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+        font-size: 11px;
+        color: #f0f0f0;
+        background: #000;
+      }
+      .terminal-cursor {
+        color: #000;
+        background: #f0f0f0;
+      }
+    </style>
   </head>
   <body>
     <h1>Hello web-cli</h1>
+    <script type="text/javascript">
+      window.term = new Terminal({cols: 80, rows: 24, screenKeys: true});
+      term.open(document.body);
+
+      var originalWrite = term.write.bind(term);
+      term.write = function(text) {
+        originalWrite(text);
+      }
+
+      var buffer = "";
+      term.on("data", function(data) {
+        if (data === "\r") {
+          cf(buffer.split(" "));
+          data = "\r\n";
+          buffer = "";
+        } else {
+          buffer += data;
+        }
+        term.write(data);
+      });
+    </script>
   </body>
 </html>

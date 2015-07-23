@@ -20,9 +20,9 @@ func main() {
 	js.Global.Set("cf", callCommand)
 }
 
-func callCommand(args ...string) {
+func callCommand(args []string) {
 	go func() {
-		maincli.Maincli(append([]string{"./web-cli"}, args...))
+		maincli.Maincli(args)
 	}()
 }
 
@@ -49,11 +49,11 @@ func (ui *browserUI) PrintCapturingNoOutput(message string, args ...interface{})
 
 func (ui *browserUI) Say(message string, args ...interface{}) {
 	fullMessage := fmt.Sprintf(message+"\n", args...)
-	fullMessage = strings.Replace(fullMessage, "\n", "<br />", -1)
-	js.Global.Get("document").Call("write", fullMessage)
+	fullMessage = strings.Replace(fullMessage, "\n", "\r\n", -1)
+	js.Global.Get("term").Call("write", fullMessage)
 }
 
-func (ui terminalUI) AskForPassword(prompt string, args ...interface{}) (passwd string) {
+func (ui browserUI) AskForPassword(prompt string, args ...interface{}) (passwd string) {
 	return ui.Ask(prompt, args...)
 }
 
@@ -102,7 +102,7 @@ func (c *browserUI) Ask(prompt string, args ...interface{}) (answer string) {
 }
 
 func (c *browserUI) Ok() {
-	c.Say(SuccessColor(T("OK")))
+	c.Say(terminal.SuccessColor(T("OK")))
 }
 
 const QuietPanic = "This shouldn't print anything"
@@ -111,14 +111,14 @@ func (c *browserUI) Failed(message string, args ...interface{}) {
 	message = fmt.Sprintf(message, args...)
 
 	if T == nil {
-		c.Say(FailureColor("FAILED"))
+		c.Say(terminal.FailureColor("FAILED"))
 		c.Say(message)
 
 		trace.Logger.Print("FAILED")
 		trace.Logger.Print(message)
 		c.PanicQuietly()
 	} else {
-		c.Say(FailureColor(T("FAILED")))
+		c.Say(terminal.FailureColor(T("FAILED")))
 		c.Say(message)
 
 		trace.Logger.Print(T("FAILED"))
@@ -128,18 +128,18 @@ func (c *browserUI) Failed(message string, args ...interface{}) {
 }
 
 func (c *browserUI) PanicQuietly() {
-	js.Global.Get("console").call("error", QuietPanic)
+	js.Global.Get("console").Call("error", QuietPanic)
 }
 
 func (c *browserUI) FailWithUsage(context *cli.Context) {
-	c.Say(FailureColor(T("FAILED")))
+	c.Say(terminal.FailureColor(T("FAILED")))
 	c.Say(T("Incorrect Usage.\n"))
 	cli.ShowCommandHelp(context, context.Command.Name)
 	c.Say("")
 }
 
 func (ui *browserUI) ShowConfiguration(config core_config.Reader) {
-	table := NewTable(ui, []string{"", ""})
+	table := terminal.NewTable(ui, []string{"", ""})
 
 	if config.HasAPIEndpoint() {
 		table.Add(
@@ -154,7 +154,7 @@ func (ui *browserUI) ShowConfiguration(config core_config.Reader) {
 
 	if !config.IsLoggedIn() {
 		table.Print()
-		ui.Say(NotLoggedInText())
+		ui.Say(terminal.NotLoggedInText())
 		return
 	} else {
 		table.Add(
@@ -168,7 +168,7 @@ func (ui *browserUI) ShowConfiguration(config core_config.Reader) {
 		command := fmt.Sprintf("%s target -o ORG -s SPACE", cf.Name())
 		ui.Say(T("No org or space targeted, use '{{.CFTargetCommand}}'",
 			map[string]interface{}{
-				"CFTargetCommand": CommandColor(command),
+				"CFTargetCommand": terminal.CommandColor(command),
 			}))
 		return
 	}
@@ -184,7 +184,7 @@ func (ui *browserUI) ShowConfiguration(config core_config.Reader) {
 			T("Org:"),
 			T("No org targeted, use '{{.CFTargetCommand}}'",
 				map[string]interface{}{
-					"CFTargetCommand": CommandColor(command),
+					"CFTargetCommand": terminal.CommandColor(command),
 				}),
 		)
 	}
@@ -198,7 +198,7 @@ func (ui *browserUI) ShowConfiguration(config core_config.Reader) {
 		command := fmt.Sprintf("%s target -s SPACE", cf.Name())
 		table.Add(
 			T("Space:"),
-			T("No space targeted, use '{{.CFTargetCommand}}'", map[string]interface{}{"CFTargetCommand": CommandColor(command)}),
+			T("No space targeted, use '{{.CFTargetCommand}}'", map[string]interface{}{"CFTargetCommand": terminal.CommandColor(command)}),
 		)
 	}
 
@@ -214,7 +214,7 @@ func (c *browserUI) Wait(duration time.Duration) {
 }
 
 func (ui *browserUI) Table(headers []string) terminal.Table {
-	return NewTable(ui, headers)
+	return terminal.NewTable(ui, headers)
 }
 
 func (ui *browserUI) NotifyUpdateIfNeeded(config core_config.Reader) {
